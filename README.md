@@ -1,4 +1,4 @@
-# MiniFountain
+# Mini-Fountain
 
 2019-2 Gachon Univ. Robotics Term Project
 
