@@ -22,12 +22,27 @@
   SOFTWARE.
 */
 
-void setup() {
-  // put your setup code here, to run once:
+#include <SoftwareSerial.h>
 
+#define BT_RX 2
+#define BT_TX 3
+
+SoftwareSerial BT(BT_RX, BT_TX);
+
+void setup() {
+  // Serial (Debug)
+  Serial.begin(9600);
+
+  // Bluetooth Software Serial
+  BT.begin(115200);
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
 
+  if(BT.available()) {
+    String data = BT.readString();
+    Serial.println("Bluetooth Data : " + data);
+  }
+  delay(100);
 }
