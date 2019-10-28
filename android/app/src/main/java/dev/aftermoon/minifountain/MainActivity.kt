@@ -45,18 +45,18 @@ import com.skydoves.colorpickerview.ActionMode
 class MainActivity : AppCompatActivity() {
 
     private lateinit var bluetooth : BluetoothSPP
-    private val REQUEST_ENABLE_BT: Int = 1000
+    private val REQUEST_ENABLE_BT = 1000
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
-        // Connect Bluetooth
-        connectBluetooth()
     }
 
     override fun onStart() {
         super.onStart()
+        // Bluetooth Library Loading
+        bluetooth = BluetoothSPP(this)
+
         // If Bluetooth not Enabled
         if(!bluetooth.isBluetoothEnabled) run {
             // Request Bluetooth On
@@ -68,6 +68,7 @@ class MainActivity : AppCompatActivity() {
                 bluetooth.setupService()
                 bluetooth.startService(BluetoothState.DEVICE_OTHER)
             }
+            connectBluetooth()
         }
     }
 
@@ -104,9 +105,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun connectBluetooth() {
-        // Bluetooth Loading
-        bluetooth = BluetoothSPP(this)
-
         if(bluetooth.isBluetoothAvailable) {
             selectBTDevice()
 
@@ -140,6 +138,7 @@ class MainActivity : AppCompatActivity() {
             REQUEST_ENABLE_BT -> {
                 if(resultCode == Activity.RESULT_OK) {
                     Toast.makeText(this, "블루투스가 활성화 되었습니다!", Toast.LENGTH_SHORT).show()
+                    connectBluetooth()
                 }
                 else {
                     Toast.makeText(this, "블루투스 활성화에 실패했습니다.", Toast.LENGTH_SHORT).show()
@@ -176,7 +175,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        btDeviceDialog.setCancelable(false)
         val alert = btDeviceDialog.create()
         alert.show()
     }
