@@ -27,22 +27,45 @@
 #define BT_RX 2
 #define BT_TX 3
 
-SoftwareSerial BT(BT_RX, BT_TX);
+SoftwareSerial BTSerial(BT_RX, BT_TX);
 
 void setup() {
   // Serial (Debug)
   Serial.begin(9600);
 
   // Bluetooth Software Serial
-  BT.begin(115200);
+  BTSerial.begin(19200);
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
+  if(BTSerial.available()) {
+    String btData = BTSerial.readString();
 
-  if(BT.available()) {
-    String data = BT.readString();
-    Serial.println("Bluetooth Data : " + data);
+    String convtData = "";
+    if(btData.indexOf("color") != -1) {
+      convtData = btData.substring(8, 14);
+      Serial.println("Color : " + convtData);
+      RGBChange(convtData);
+    }
+    else if(btData.indexOf("power") != -1) {
+      convtData = btData.substring(6, 9);
+      Serial.println("Power : " + convtData);
+    }
   }
-  delay(100);
+}
+
+void RGBChange(String hexString) {
+  // Convert Hex Color Code to RGB
+  // https://stackoverflow.com/questions/23576827/arduino-convert-a-string-hex-ffffff-into-3-int
+  long long number = strtol( &hexString[1], NULL, 16);
+  
+  // Split them up into r, g, b values
+  long r = number >> 16;
+  long g = number >> 8 & 0xFF;
+  long b = number & 0xFF;
+
+  String rgb = String(r) + "," + String(g) + "," + String(b);
+  Serial.println("RGB Color : " + rgb);
+  //color(r, g, b)
 }
