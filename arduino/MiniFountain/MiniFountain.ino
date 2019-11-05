@@ -24,9 +24,17 @@
 
 #include <SoftwareSerial.h>
 
+#define motorAp 6
+#define motorAm 7
+#define motorBp 11
+#define motorBm 12
+
+#define connectedCheckTime 60000
 #define BT_RX 2
 #define BT_TX 3
-
+unsigned long time;
+unsigned long preTime;
+boolean isCheckSend = false;
 SoftwareSerial BTSerial(BT_RX, BT_TX);
 
 void setup() {
@@ -50,7 +58,30 @@ void loop() {
     }
     else if(btData.indexOf("power") != -1) {
       convtData = btData.substring(6, 9);
+      int power = map(convtData.toInt(), 0, 100, 0, 255);
+      
+      digitalWrite(motorAp, HIGH);
+      digitalWrite(motorAm, LOW);
+      analogWrite(motorAp, power);
+
+      digitalWrite(motorBp, HIGH);
+      digitalWrite(motorBm, LOW);
+      analogWrite(motorBp, power);
       Serial.println("Power : " + convtData);
+      Serial.println("Power (Map) : " + String(power)); 
+    }
+    else if(btData.indexOf("connect!") != -1) {
+      isCheckSend = false;
+      Serial.println("Bluetooth Check Complete");
+    }
+  }
+
+  time = millis();
+  if(connectedCheckTime == time - preTime) {
+    if(isCheckSend == false) {
+      preTime = time;
+      BTSerial.write("connect?");
+      isCheckSend = true;
     }
   }
 }

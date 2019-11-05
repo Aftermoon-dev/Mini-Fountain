@@ -57,6 +57,11 @@ class MainActivity : AppCompatActivity() {
         // Bluetooth Library Loading
         bluetooth = BluetoothSPP(this)
 
+        if(!bluetooth.isBluetoothAvailable) {
+            Toast.makeText(this, "블루투스가 지원되지 않는 기기에서는 사용할 수 없습니다. 앱을 종료합니다.", Toast.LENGTH_LONG).show()
+            finish()
+        }
+
         // If Bluetooth not Enabled
         if(!bluetooth.isBluetoothEnabled) run {
             // Request Bluetooth On
@@ -70,6 +75,11 @@ class MainActivity : AppCompatActivity() {
             }
             connectBluetooth()
         }
+    }
+
+    override fun onPause() {
+        bluetooth.stopService()
+        super.onPause()
     }
 
     override fun onBackPressed() {
@@ -112,7 +122,9 @@ class MainActivity : AppCompatActivity() {
             bluetooth.setBluetoothConnectionListener(object : BluetoothConnectionListener {
                 override fun onDeviceConnected(name: String, address: String) {
                     Toast.makeText(applicationContext, "$name 과 연결되었습니다.", Toast.LENGTH_SHORT).show()
+                    bluetooth.send("connected", true)
                     Log.d("Bluetooth", "Device Connected! Device Name : $name")
+                    setBTReceiving()
                     setColorPickerView()
                     setWaterSeek()
                 }
@@ -129,6 +141,14 @@ class MainActivity : AppCompatActivity() {
                     selectBTDevice()
                 }
             })
+        }
+    }
+
+    private fun setBTReceiving() {
+        bluetooth.setOnDataReceivedListener { data, message ->
+            if(message == "connect?") {
+                bluetooth.send("connect!", true)
+            }
         }
     }
 
