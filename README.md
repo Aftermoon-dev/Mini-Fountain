@@ -28,7 +28,11 @@ SOFTWARE.
 ```
 
 # 3rd-Party Notice
-colorPickerView by skydoves / https://github.com/skydoves/ColorPickerView
+
+## Library
+
+### colorPickerView by skydoves
+https://github.com/skydoves/ColorPickerView
 ```
 Copyright 2017 skydoves
 
@@ -45,7 +49,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
-Android-BluetoothSPPLibrary by Akexorcist / https://github.com/akexorcist/Android-BluetoothSPPLibrary
+### Android-BluetoothSPPLibrary by Akexorcist 
+https://github.com/akexorcist/Android-BluetoothSPPLibrary
 ```
 Copyright (c) 2014 Akexorcist
 
@@ -61,3 +66,10 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and 
 limitations under the License.
 ```
+
+## Image
+
+### App Icon (Fountain Emoji)
+https://iconscout.com/icon/fountain-water-garden-decoration-emoj-symbol
+
+CCL 4.0 - https://creativecommons.org/licenses/by/4.0/

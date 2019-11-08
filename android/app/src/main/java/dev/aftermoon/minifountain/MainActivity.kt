@@ -189,10 +189,15 @@ class MainActivity : AppCompatActivity() {
             Log.d("selectBTDevice", items[i].toString())
             for (device in deviceList) {
                 if(device.name == items[i].toString()) {
+                    Toast.makeText(this, "연결중입니다...", Toast.LENGTH_SHORT).show()
                     Log.d("selectBTDevice", device.address)
                     bluetooth.connect(device.address)
                 }
             }
+        }
+
+        btDeviceDialog.setOnCancelListener {
+            Toast.makeText(this, "페어링할 기기를 선택하지 않았습니다. 앱을 정상적으로 사용하시려면 페어링을 진행해주세요.", Toast.LENGTH_SHORT).show()
         }
 
         val alert = btDeviceDialog.create()
