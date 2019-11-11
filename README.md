@@ -2,6 +2,8 @@
 
 2019-2 Gachon Univ. Robotics Term Project
 
+![Sketch](https://raw.githubusercontent.com/Aftermoon-dev/Mini-Fountain/master/arduino/sketch_bb.jpg)
+
 # License
 ```
 MIT License
