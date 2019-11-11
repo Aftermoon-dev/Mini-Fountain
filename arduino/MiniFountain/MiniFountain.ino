@@ -42,7 +42,7 @@ boolean isCheckSend = false;
 boolean isConnected = false;
 
 /** LED (NeoPixel) Setting **/
-#define ledPin 9
+#define ledPin 5
 #define ledNum 4
 Adafruit_NeoPixel leds(ledNum, ledPin, NEO_GRBW + NEO_KHZ800);
 
@@ -87,17 +87,14 @@ void loop() {
       Serial.println("Power : " + convtData);
       Serial.println("Power (Map) : " + String(power)); 
     }
-    else if(btData.indexOf("bluetooth;connect") != -1) {
+    else if(btData.indexOf("bluetooth;connect!") != -1) {
       isCheckSend = false;
+      isConnected = true;
       Serial.println("Bluetooth Connection Check Complete.");
     }
     else if(btData.indexOf("bluetooth;connected") != -1) {
       isConnected = true;
       Serial.println("Bluetooth Connected!");
-    }
-    else if(btData.indexOf("bluetooth;disconnected") != -1) {
-      isConnected = false;
-      Serial.println("Bluetooth Disconnected.");
     }
   }
 

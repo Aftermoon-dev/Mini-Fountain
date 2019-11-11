@@ -54,7 +54,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
-        // Bluetooth Library Loading
         bluetooth = BluetoothSPP(this)
 
         if(!bluetooth.isBluetoothAvailable) {
@@ -77,14 +76,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    override fun onPause() {
+    override fun onDestroy() {
         bluetooth.stopService()
-        super.onPause()
-    }
-
-    override fun onBackPressed() {
-        bluetooth.stopService()
-        super.onBackPressed()
+        super.onDestroy()
     }
 
     private fun setColorPickerView() {
@@ -121,8 +115,8 @@ class MainActivity : AppCompatActivity() {
             // Bluetooth Connection Listener
             bluetooth.setBluetoothConnectionListener(object : BluetoothConnectionListener {
                 override fun onDeviceConnected(name: String, address: String) {
-                    Toast.makeText(applicationContext, "$name 과 연결되었습니다.", Toast.LENGTH_SHORT).show()
-                    bluetooth.send("connected", true)
+                    Toast.makeText(applicationContext, "$name 에 연결되었습니다.", Toast.LENGTH_SHORT).show()
+                    bluetooth.send("bluetooth;connected", true)
                     Log.d("Bluetooth", "Device Connected! Device Name : $name")
                     setBTReceiving()
                     setColorPickerView()
@@ -145,9 +139,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setBTReceiving() {
-        bluetooth.setOnDataReceivedListener { data, message ->
-            if(message == "connect?") {
-                bluetooth.send("connect!", true)
+        bluetooth.setOnDataReceivedListener { _, message ->
+            if(message == "bluetooth;connect?") {
+                bluetooth.send("bluetooth;connect!", true)
             }
         }
     }
@@ -161,7 +155,8 @@ class MainActivity : AppCompatActivity() {
                     connectBluetooth()
                 }
                 else {
-                    Toast.makeText(this, "블루투스 활성화에 실패했습니다.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "블루투스 활성화에 실패했습니다. 앱을 사용하시려면 블루투스 활성화가 필요합니다.", Toast.LENGTH_SHORT).show()
+                    finish()
                 }
             }
         }
