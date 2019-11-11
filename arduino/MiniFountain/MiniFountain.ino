@@ -87,14 +87,17 @@ void loop() {
       Serial.println("Power : " + convtData);
       Serial.println("Power (Map) : " + String(power)); 
     }
-    else if(btData.indexOf("connect!") != -1) {
+    else if(btData.indexOf("bluetooth;connect") != -1) {
       isCheckSend = false;
       Serial.println("Bluetooth Connection Check Complete.");
     }
-    
-    else if(btData.indexOf("connected") != -1) {
+    else if(btData.indexOf("bluetooth;connected") != -1) {
       isConnected = true;
       Serial.println("Bluetooth Connected!");
+    }
+    else if(btData.indexOf("bluetooth;disconnected") != -1) {
+      isConnected = false;
+      Serial.println("Bluetooth Disconnected.");
     }
   }
 
@@ -103,7 +106,7 @@ void loop() {
     if(isCheckSend == false) {
       if(isConnected == true) {
         preTime = time;
-        BTSerial.write("connect?");
+        BTSerial.write("bluetooth;connect?");
         isCheckSend = true;
         Serial.println("Check Bluetooth Connection...");
       }
