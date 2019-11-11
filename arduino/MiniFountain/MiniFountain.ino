@@ -23,26 +23,42 @@
 */
 
 #include <SoftwareSerial.h>
+#include <Adafruit_NeoPixel.h>
 
+/** Motor Setting **/
 #define motorAp 6
 #define motorAm 7
 #define motorBp 11
 #define motorBm 12
 
-#define connectedCheckTime 60000
+/** Bluetooth Setting **/
 #define BT_RX 2
 #define BT_TX 3
+#define connectedCheckTime 60000
+SoftwareSerial BTSerial(BT_RX, BT_TX);
 unsigned long time;
 unsigned long preTime;
 boolean isCheckSend = false;
-SoftwareSerial BTSerial(BT_RX, BT_TX);
+boolean isConnected = false;
+
+/** LED (NeoPixel) Setting **/
+#define ledPin 9
+#define ledNum 4
+Adafruit_NeoPixel leds(ledNum, ledPin, NEO_GRBW + NEO_KHZ800);
 
 void setup() {
-  // Serial (Debug)
+  // Begin Serial (Debug)
   Serial.begin(9600);
-
-  // Bluetooth Software Serial
+  Serial.println("Mini Fountain System Online");
+  Serial.println("Made by Team Midnight");
+  
+  // Begin Bluetooth
   BTSerial.begin(19200);
+
+  // Begin LED
+  pinMode(ledPin, OUTPUT);
+  leds.begin();
+  leds.show();
 }
 
 void loop() {
@@ -67,21 +83,34 @@ void loop() {
       digitalWrite(motorBp, HIGH);
       digitalWrite(motorBm, LOW);
       analogWrite(motorBp, power);
+      
       Serial.println("Power : " + convtData);
       Serial.println("Power (Map) : " + String(power)); 
     }
     else if(btData.indexOf("connect!") != -1) {
       isCheckSend = false;
-      Serial.println("Bluetooth Check Complete");
+      Serial.println("Bluetooth Connection Check Complete.");
+    }
+    
+    else if(btData.indexOf("connected") != -1) {
+      isConnected = true;
+      Serial.println("Bluetooth Connected!");
     }
   }
 
   time = millis();
   if(connectedCheckTime == time - preTime) {
     if(isCheckSend == false) {
-      preTime = time;
-      BTSerial.write("connect?");
-      isCheckSend = true;
+      if(isConnected == true) {
+        preTime = time;
+        BTSerial.write("connect?");
+        isCheckSend = true;
+        Serial.println("Check Bluetooth Connection...");
+      }
+    }
+    else {
+      isConnected = false;
+      Serial.println("Failed to Bluetooth Communication.");
     }
   }
 }
@@ -98,5 +127,10 @@ void RGBChange(String hexString) {
 
   String rgb = String(r) + "," + String(g) + "," + String(b);
   Serial.println("RGB Color : " + rgb);
-  //color(r, g, b)
+  
+  for(int i = 0; i < ledNum; i++) {
+    leds.setPixelColor(i, (int) r, (int) g, (int) b);
+  }
+  
+  leds.show();
 }
