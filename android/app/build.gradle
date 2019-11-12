@@ -11,8 +11,8 @@ android {
         applicationId "dev.aftermoon.minifountain"
         minSdkVersion 23
         targetSdkVersion 29
-        versionCode 1000
-        versionName "1.0.0a"
+        versionCode 1100
+        versionName "1.1.0a"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {

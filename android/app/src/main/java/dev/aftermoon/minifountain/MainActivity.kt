@@ -41,21 +41,21 @@ import app.akexorcist.bluetotohspp.library.BluetoothSPP
 import app.akexorcist.bluetotohspp.library.BluetoothSPP.BluetoothConnectionListener
 import app.akexorcist.bluetotohspp.library.BluetoothState
 import com.skydoves.colorpickerview.ActionMode
+import java.lang.Exception
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var bluetooth : BluetoothSPP
-    private val REQUEST_ENABLE_BT = 1000
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        bluetooth = BluetoothSPP(applicationContext)
     }
 
     override fun onStart() {
         super.onStart()
-        bluetooth = BluetoothSPP(this)
-
         if(!bluetooth.isBluetoothAvailable) {
             Toast.makeText(this, "블루투스가 지원되지 않는 기기에서는 사용할 수 없습니다. 앱을 종료합니다.", Toast.LENGTH_LONG).show()
             finish()
@@ -65,18 +65,17 @@ class MainActivity : AppCompatActivity() {
         if(!bluetooth.isBluetoothEnabled) run {
             // Request Bluetooth On
             val btIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-            startActivityForResult(btIntent, REQUEST_ENABLE_BT)
+            startActivityForResult(btIntent, BluetoothState.REQUEST_ENABLE_BT)
         }
         else {
-            if(!bluetooth.isServiceAvailable) {
-                bluetooth.setupService()
-                bluetooth.startService(BluetoothState.DEVICE_OTHER)
-            }
+            bluetooth.setupService()
+            bluetooth.startService(BluetoothState.DEVICE_OTHER)
             connectBluetooth()
         }
     }
 
     override fun onDestroy() {
+        bluetooth.send("bluetooth;disconnected", true)
         bluetooth.stopService()
         super.onDestroy()
     }
@@ -149,9 +148,11 @@ class MainActivity : AppCompatActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         when (requestCode) {
-            REQUEST_ENABLE_BT -> {
+            BluetoothState.REQUEST_ENABLE_BT -> {
                 if(resultCode == Activity.RESULT_OK) {
                     Toast.makeText(this, "블루투스가 활성화 되었습니다!", Toast.LENGTH_SHORT).show()
+                    bluetooth.setupService()
+                    bluetooth.startService(BluetoothState.DEVICE_OTHER)
                     connectBluetooth()
                 }
                 else {
@@ -184,9 +185,15 @@ class MainActivity : AppCompatActivity() {
             Log.d("selectBTDevice", items[i].toString())
             for (device in deviceList) {
                 if(device.name == items[i].toString()) {
-                    Toast.makeText(this, "연결중입니다...", Toast.LENGTH_SHORT).show()
-                    Log.d("selectBTDevice", device.address)
-                    bluetooth.connect(device.address)
+                    try {
+                        Toast.makeText(this, "연결중입니다...", Toast.LENGTH_SHORT).show()
+                        Log.d("selectBTDevice", device.address)
+                        bluetooth.connect(device.address)
+                    }
+                    catch(e: Exception) {
+                        Toast.makeText(this, "에러가 발생했습니다. 다시 시도해주세요.", Toast.LENGTH_SHORT).show()
+                        selectBTDevice()
+                    }
                 }
             }
         }

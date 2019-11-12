@@ -43,8 +43,8 @@ boolean isConnected = false;
 
 /** LED (NeoPixel) Setting **/
 #define ledPin 5
-#define ledNum 4
-Adafruit_NeoPixel leds(ledNum, ledPin, NEO_GRBW + NEO_KHZ800);
+#define ledNum 2
+Adafruit_NeoPixel leds(ledNum, ledPin, NEO_GRB + NEO_KHZ800);
 
 void setup() {
   // Begin Serial (Debug)
@@ -96,6 +96,10 @@ void loop() {
       isConnected = true;
       Serial.println("Bluetooth Connected!");
     }
+    else if(btData.indexOf("bluetooth;disconnected") != -1) {
+      isConnected = false;
+      Serial.println("Bluetooth Disconnected");
+    }
   }
 
   time = millis();
@@ -127,10 +131,11 @@ void RGBChange(String hexString) {
 
   String rgb = String(r) + "," + String(g) + "," + String(b);
   Serial.println("RGB Color : " + rgb);
-  
-  for(int i = 0; i < ledNum; i++) {
-    leds.setPixelColor(i, (int) r, (int) g, (int) b);
-  }
+
+  leds.setPixelColor(0, leds.Color((int) r, (int) g, (int) b));
+  leds.setPixelColor(1, leds.Color((int) r, (int) g, (int) b));
+  //leds.setPixelColor(0, (int) r, (int) g, (int) b);
+  //leds.setPixelColor(0, (int) r, (int) g, (int) b);
   
   leds.show();
 }
