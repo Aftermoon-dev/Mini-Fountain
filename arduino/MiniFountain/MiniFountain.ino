@@ -24,6 +24,7 @@
 
 #include <SoftwareSerial.h>
 #include <Adafruit_NeoPixel.h>
+#include <DHT.h>
 
 /** Motor Setting **/
 #define motorAp 6
@@ -46,6 +47,11 @@ boolean isConnected = false;
 #define ledNum 2
 Adafruit_NeoPixel leds(ledNum, ledPin, NEO_GRB + NEO_KHZ800);
 
+/** DHT11 Sensor **/
+#define dhtPin 8
+DHT dht(dhtPin, DHT11);
+float humi;
+
 void setup() {
   // Begin Serial (Debug)
   Serial.begin(9600);
@@ -59,6 +65,15 @@ void setup() {
   pinMode(ledPin, OUTPUT);
   leds.begin();
   leds.show();
+
+  // Begin DHT11
+  dht.begin();
+  humi = dht.readHumidity();
+  delay(100);
+  if(humi < 50) {
+    int power = map(humi, 20, 90, 255, 0);
+    powerSet(power);
+  }
 }
 
 void loop() {
@@ -70,20 +85,12 @@ void loop() {
     if(btData.indexOf("color") != -1) {
       convtData = btData.substring(8, 14);
       Serial.println("Color : " + convtData);
-      RGBChange(convtData);
+      changeRGB(convtData);
     }
     else if(btData.indexOf("power") != -1) {
       convtData = btData.substring(6, 9);
       int power = map(convtData.toInt(), 0, 100, 0, 255);
-      
-      digitalWrite(motorAp, HIGH);
-      digitalWrite(motorAm, LOW);
-      analogWrite(motorAp, power);
-
-      digitalWrite(motorBp, HIGH);
-      digitalWrite(motorBm, LOW);
-      analogWrite(motorBp, power);
-      
+      powerSet(power);
       Serial.println("Power : " + convtData);
       Serial.println("Power (Map) : " + String(power)); 
     }
@@ -94,6 +101,7 @@ void loop() {
     }
     else if(btData.indexOf("bluetooth;connected") != -1) {
       isConnected = true;
+      powerSet(0);
       Serial.println("Bluetooth Connected!");
     }
     else if(btData.indexOf("bluetooth;disconnected") != -1) {
@@ -104,22 +112,32 @@ void loop() {
 
   time = millis();
   if(connectedCheckTime == time - preTime) {
-    if(isCheckSend == false) {
-      if(isConnected == true) {
+    if(isConnected == true) {
+      if(isCheckSend == false) {
         preTime = time;
         BTSerial.write("bluetooth;connect?");
         isCheckSend = true;
         Serial.println("Check Bluetooth Connection...");
       }
+      else {
+        isConnected = false;
+        Serial.println("Failed to Bluetooth Communication.");
+      }
     }
     else {
-      isConnected = false;
-      Serial.println("Failed to Bluetooth Communication.");
+      humi = dht.readHumidity()
+      if(humi < 50) {
+        int power = map(humi, 20, 90, 255, 0);
+        Serial.println("Humidity : " + String(humi)); 
+        Serial.println("Power (Humidity Mode): " + String(power)); 
+        powerSet(power);
+      }
     }
   }
+  delay(100);
 }
 
-void RGBChange(String hexString) {
+void changeRGB(String hexString) {
   // Convert Hex Color Code to RGB
   // https://stackoverflow.com/questions/23576827/arduino-convert-a-string-hex-ffffff-into-3-int
   long long number = strtol( &hexString[1], NULL, 16);
@@ -132,10 +150,18 @@ void RGBChange(String hexString) {
   String rgb = String(r) + "," + String(g) + "," + String(b);
   Serial.println("RGB Color : " + rgb);
 
-  leds.setPixelColor(0, leds.Color((int) r, (int) g, (int) b));
-  leds.setPixelColor(1, leds.Color((int) r, (int) g, (int) b));
-  //leds.setPixelColor(0, (int) r, (int) g, (int) b);
-  //leds.setPixelColor(0, (int) r, (int) g, (int) b);
-  
+  for(int i = 0; i < ledNum; i++) {
+    leds.setPixelColor(i, leds.Color((int) r, (int) g, (int) b));
+  }
   leds.show();
+}
+
+void powerSet(int power) {
+    digitalWrite(motorAp, HIGH);
+    digitalWrite(motorAm, LOW);
+    analogWrite(motorAp, power);
+
+    digitalWrite(motorBp, HIGH);
+    digitalWrite(motorBm, LOW);
+    analogWrite(motorBp, power);
 }
