@@ -48,7 +48,7 @@ boolean isConnected = false;
 Adafruit_NeoPixel leds(ledNum, ledPin, NEO_GRB + NEO_KHZ800);
 
 /** DHT11 Sensor **/
-#define dhtPin 8
+#define dhtPin 4
 DHT dht(dhtPin, DHT11);
 float humi;
 
@@ -69,9 +69,11 @@ void setup() {
   // Begin DHT11
   dht.begin();
   humi = dht.readHumidity();
+  Serial.println("Humidity : " + String(humi)); 
   delay(100);
-  if(humi < 50) {
+  if(humi < 65) {
     int power = map(humi, 20, 90, 255, 0);
+    Serial.println("Power (Humidity Mode): " + String(power)); 
     powerSet(power);
   }
 }
@@ -115,7 +117,7 @@ void loop() {
     if(isConnected == true) {
       if(isCheckSend == false) {
         preTime = time;
-        BTSerial.write("bluetooth;connect?");
+        BTSerial.write("bluetooth;connect?\r\n");
         isCheckSend = true;
         Serial.println("Check Bluetooth Connection...");
       }
@@ -125,7 +127,7 @@ void loop() {
       }
     }
     else {
-      humi = dht.readHumidity()
+      humi = dht.readHumidity();
       if(humi < 50) {
         int power = map(humi, 20, 90, 255, 0);
         Serial.println("Humidity : " + String(humi)); 

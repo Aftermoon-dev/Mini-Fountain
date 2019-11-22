@@ -31,9 +31,13 @@ import android.bluetooth.BluetoothDevice
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.os.Handler
 import com.skydoves.colorpickerview.listeners.ColorEnvelopeListener
 import kotlinx.android.synthetic.main.activity_main.*
 import android.util.Log
+import android.view.Menu
+import android.view.MenuItem
+import android.view.WindowManager
 import android.widget.SeekBar
 import android.widget.SeekBar.OnSeekBarChangeListener
 import android.widget.Toast
@@ -50,7 +54,6 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
         bluetooth = BluetoothSPP(applicationContext)
     }
 
@@ -80,9 +83,23 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
     }
 
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.mainactivity_menu, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when(item.itemId) {
+            R.id.connectBT -> {
+                selectBTDevice()
+            }
+        }
+        return super.onOptionsItemSelected(item)
+    }
+
     private fun setColorPickerView() {
         colorPickerView.actionMode = ActionMode.LAST
-        colorPickerView.setColorListener(ColorEnvelopeListener { envelope, fromUser ->
+        colorPickerView.setColorListener(ColorEnvelopeListener { envelope, _ ->
             Log.d("MainActivity", "User Selected Color : " + envelope.hexCode)
             // send Hex Color Code for LED
             bluetooth.send("color;" + envelope.hexCode, true)
@@ -109,11 +126,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun connectBluetooth() {
         if(bluetooth.isBluetoothAvailable) {
-            selectBTDevice()
-
             // Bluetooth Connection Listener
             bluetooth.setBluetoothConnectionListener(object : BluetoothConnectionListener {
                 override fun onDeviceConnected(name: String, address: String) {
+                    val delayHandle: Handler = Handler()
+                    delayHandle.postDelayed({}, 1000)
+                    window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
                     Toast.makeText(applicationContext, "$name 에 연결되었습니다.", Toast.LENGTH_SHORT).show()
                     bluetooth.send("bluetooth;connected", true)
                     Log.d("Bluetooth", "Device Connected! Device Name : $name")
@@ -125,13 +143,12 @@ class MainActivity : AppCompatActivity() {
                 override fun onDeviceDisconnected() {
                     Toast.makeText(applicationContext, "블루투스 연결이 해제되었습니다.", Toast.LENGTH_SHORT).show()
                     Log.d("Bluetooth", "Device Disconnected.")
-                    selectBTDevice()
                 }
 
                 override fun onDeviceConnectionFailed() {
+                    window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
                     Toast.makeText(applicationContext, "블루투스 연결에 실패했습니다.", Toast.LENGTH_SHORT).show()
                     Log.d("Bluetooth", "Device Connection Failed!")
-                    selectBTDevice()
                 }
             })
         }
@@ -139,6 +156,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun setBTReceiving() {
         bluetooth.setOnDataReceivedListener { _, message ->
+            Log.d("BTReceive", "Message Received : $message")
             if(message == "bluetooth;connect?") {
                 bluetooth.send("bluetooth;connect!", true)
             }
@@ -181,11 +199,13 @@ class MainActivity : AppCompatActivity() {
         }
 
         val items = listItem.toArray(arrayOfNulls<CharSequence>(listItem.size))
-        btDeviceDialog.setItems(items) { dialogInterface, i ->
+        btDeviceDialog.setItems(items) { _, i ->
             Log.d("selectBTDevice", items[i].toString())
             for (device in deviceList) {
                 if(device.name == items[i].toString()) {
                     try {
+                        setContentView(R.layout.activity_main)
+                        window.setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE, WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
                         Toast.makeText(this, "연결중입니다...", Toast.LENGTH_SHORT).show()
                         Log.d("selectBTDevice", device.address)
                         bluetooth.connect(device.address)
@@ -196,10 +216,6 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             }
-        }
-
-        btDeviceDialog.setOnCancelListener {
-            Toast.makeText(this, "페어링할 기기를 선택하지 않았습니다. 앱을 정상적으로 사용하시려면 페어링을 진행해주세요.", Toast.LENGTH_SHORT).show()
         }
 
         val alert = btDeviceDialog.create()
