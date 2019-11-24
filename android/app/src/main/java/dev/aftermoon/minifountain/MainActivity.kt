@@ -50,15 +50,13 @@ import java.lang.Exception
 class MainActivity : AppCompatActivity() {
 
     private lateinit var bluetooth : BluetoothSPP
+    private var isConnected: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         bluetooth = BluetoothSPP(applicationContext)
-    }
 
-    override fun onStart() {
-        super.onStart()
         if(!bluetooth.isBluetoothAvailable) {
             Toast.makeText(this, "블루투스가 지원되지 않는 기기에서는 사용할 수 없습니다. 앱을 종료합니다.", Toast.LENGTH_LONG).show()
             finish()
@@ -78,6 +76,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        isConnected = false
         bluetooth.send("bluetooth;disconnected", true)
         bluetooth.stopService()
         super.onDestroy()
@@ -91,7 +90,22 @@ class MainActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when(item.itemId) {
             R.id.connectBT -> {
-                selectBTDevice()
+                if(!isConnected) {
+                    selectBTDevice()
+                }
+                else {
+                    val alreadyConnectDialog: AlertDialog.Builder = AlertDialog.Builder(this)
+                    alreadyConnectDialog.setTitle("경고")
+                        .setMessage("이미 장치에 연결되어 있습니다.\n연결을 해제하고 다른 기기와 연결하시겠습니까?")
+                        .setPositiveButton("확인") { _, _ ->
+                            if(isConnected) bluetooth.disconnect()
+                            selectBTDevice()
+                        }
+                        .setNegativeButton("취소") { dialogInterface, _ ->
+                            dialogInterface.cancel()
+                        }
+                    alreadyConnectDialog.show()
+                }
             }
         }
         return super.onOptionsItemSelected(item)
@@ -113,7 +127,6 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onStopTrackingTouch(p0: SeekBar?) {
-                // send power (0 ~ 100)
                 bluetooth.send("power;$pw", true)
             }
 
@@ -129,23 +142,26 @@ class MainActivity : AppCompatActivity() {
             // Bluetooth Connection Listener
             bluetooth.setBluetoothConnectionListener(object : BluetoothConnectionListener {
                 override fun onDeviceConnected(name: String, address: String) {
+                    isConnected = true
+                    setBTReceiving()
+                    setColorPickerView()
+                    setWaterSeek()
                     val delayHandle: Handler = Handler()
                     delayHandle.postDelayed({}, 1000)
                     window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
                     Toast.makeText(applicationContext, "$name 에 연결되었습니다.", Toast.LENGTH_SHORT).show()
                     bluetooth.send("bluetooth;connected", true)
                     Log.d("Bluetooth", "Device Connected! Device Name : $name")
-                    setBTReceiving()
-                    setColorPickerView()
-                    setWaterSeek()
                 }
 
                 override fun onDeviceDisconnected() {
+                    isConnected = false
                     Toast.makeText(applicationContext, "블루투스 연결이 해제되었습니다.", Toast.LENGTH_SHORT).show()
                     Log.d("Bluetooth", "Device Disconnected.")
                 }
 
                 override fun onDeviceConnectionFailed() {
+                    isConnected = false
                     window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
                     Toast.makeText(applicationContext, "블루투스 연결에 실패했습니다.", Toast.LENGTH_SHORT).show()
                     Log.d("Bluetooth", "Device Connection Failed!")
@@ -204,7 +220,8 @@ class MainActivity : AppCompatActivity() {
             for (device in deviceList) {
                 if(device.name == items[i].toString()) {
                     try {
-                        setContentView(R.layout.activity_main)
+                        colorPickerView.selectCenter()
+                        waterSeek.progress = 0
                         window.setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE, WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
                         Toast.makeText(this, "연결중입니다...", Toast.LENGTH_SHORT).show()
                         Log.d("selectBTDevice", device.address)

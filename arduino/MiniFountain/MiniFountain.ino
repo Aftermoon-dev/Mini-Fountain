@@ -82,6 +82,7 @@ void loop() {
   // put your main code here, to run repeatedly:
   if(BTSerial.available()) {
     String btData = BTSerial.readString();
+    Serial.println("BT : " + btData);
 
     String convtData = "";
     if(btData.indexOf("color") != -1) {
@@ -91,7 +92,7 @@ void loop() {
     }
     else if(btData.indexOf("power") != -1) {
       convtData = btData.substring(6, 9);
-      int power = map(convtData.toInt(), 0, 100, 0, 255);
+      int power = convtData.toInt();
       powerSet(power);
       Serial.println("Power : " + convtData);
       Serial.println("Power (Map) : " + String(power)); 
