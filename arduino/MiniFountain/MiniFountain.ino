@@ -25,6 +25,7 @@
 #include <SoftwareSerial.h>
 #include <Adafruit_NeoPixel.h>
 #include <DHT.h>
+#include <DFRobotDFPlayerMini.h>
 
 /** Motor Setting **/
 #define motorAp 6
@@ -52,6 +53,15 @@ Adafruit_NeoPixel leds(ledNum, ledPin, NEO_GRB + NEO_KHZ800);
 DHT dht(dhtPin, DHT11);
 float humi;
 
+/** Sound **/
+#define soundPin A0
+#define DF_RX 9
+#define DF_TX 10
+SoftwareSerial dfSerial(DF_RX, DF_TX);
+DFRobotDFPlayerMini dfPlayer;
+boolean isEnabledDFPlayer = false;
+boolean isActivedPlayMusic = false;
+
 void setup() {
   // Begin Serial (Debug)
   Serial.begin(9600);
@@ -76,6 +86,16 @@ void setup() {
     Serial.println("Power (Humidity Mode): " + String(power)); 
     powerSet(power);
   }
+
+  // Begin DFPlayer Mini
+  if(!dfPlayer.begin(dfSerial)) {
+    Serial.println("Failed to Load MP3 Module.");
+    isEnabledDFPlayer = false;
+  }
+  else {
+    isEnabledDFPlayer = true;
+    dfPlayer.volume(20);
+  }
 }
 
 void loop() {
@@ -99,7 +119,7 @@ void loop() {
     }
     else if(btData.indexOf("bluetooth;connect!") != -1) {
       isCheckSend = false;
-      isConnected = true;
+      isConnected =  true;
       Serial.println("Bluetooth Connection Check Complete.");
     }
     else if(btData.indexOf("bluetooth;connected") != -1) {
@@ -111,31 +131,52 @@ void loop() {
       isConnected = false;
       Serial.println("Bluetooth Disconnected");
     }
+    else if(btData.indexOf("playaudio;") != 1) {
+      convtData = btData.substring(6, 7);
+      int songNum = convtData.toInt();
+
+      if(isEnabledDFPlayer == false) {
+        BTSerial.write("playaudio;failedbegin\r\n");
+        isActivedPlayMusic = false;
+      }
+      else {
+        isActivedPlayMusic = true;
+        dfPlayer.play(songNum);
+      }
+    }
   }
 
   time = millis();
   if(connectedCheckTime == time - preTime) {
-    if(isConnected == true) {
-      if(isCheckSend == false) {
-        preTime = time;
-        BTSerial.write("bluetooth;connect?\r\n");
-        isCheckSend = true;
-        Serial.println("Check Bluetooth Connection...");
+    if(isActivedPlayMusic == false) {
+      if(isConnected == true) {
+        if(isCheckSend == false) {
+          preTime = time;
+          BTSerial.write("bluetooth;connect?\r\n");
+          isCheckSend = true;
+          Serial.println("Check Bluetooth Connection...");
+        }
+        else {
+          isConnected = false;
+          Serial.println("Failed to Bluetooth Communication.");
+        }
       }
       else {
-        isConnected = false;
-        Serial.println("Failed to Bluetooth Communication.");
+        humi = dht.readHumidity();
+        if(humi < 50) {
+          int power = map(humi, 20, 90, 255, 0);
+          Serial.println("Humidity : " + String(humi)); 
+          Serial.println("Power (Humidity Mode): " + String(power)); 
+          powerSet(power);
+        }
       }
     }
-    else {
-      humi = dht.readHumidity();
-      if(humi < 50) {
-        int power = map(humi, 20, 90, 255, 0);
-        Serial.println("Humidity : " + String(humi)); 
-        Serial.println("Power (Humidity Mode): " + String(power)); 
-        powerSet(power);
-      }
-    }
+  }
+
+  if(isActivedPlayMusic == true) {
+    int power = map(analogRead(soundPin), 0, 1023, 0, 255);
+    powerSet(power);
+    Serial.println("Power (Music Mode): " + String(power)); 
   }
   delay(100);
 }
