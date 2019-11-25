@@ -57,6 +57,7 @@ float humi;
 #define soundPin A0
 #define DF_RX 9
 #define DF_TX 10
+#define DF_VOLUME 20
 SoftwareSerial dfSerial(DF_RX, DF_TX);
 DFRobotDFPlayerMini dfPlayer;
 boolean isEnabledDFPlayer = false;
@@ -94,12 +95,15 @@ void setup() {
   }
   else {
     isEnabledDFPlayer = true;
-    dfPlayer.volume(20);
+    dfPlayer.volume(DF_VOLUME);
   }
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+  if(isActivedPlayMusic == true && isPlayEnd(dfPlayer.readType()) == true) {
+    isActivedPlayMusic = false;
+  }
+  
   if(BTSerial.available()) {
     String btData = BTSerial.readString();
     Serial.println("BT : " + btData);
@@ -131,8 +135,8 @@ void loop() {
       isConnected = false;
       Serial.println("Bluetooth Disconnected");
     }
-    else if(btData.indexOf("playaudio;") != 1) {
-      convtData = btData.substring(6, 7);
+    else if(btData.indexOf("playaudio;play") != 1) {
+      convtData = btData.substring(13, 15);
       int songNum = convtData.toInt();
 
       if(isEnabledDFPlayer == false) {
@@ -142,6 +146,12 @@ void loop() {
       else {
         isActivedPlayMusic = true;
         dfPlayer.play(songNum);
+      }
+    }
+    else if(btData.indexOf("playaudio;stop") != 1) {
+      if(isActivedPlayMusic == true) {
+        isActivedPlayMusic = false;
+        dfPlayer.pause();
       }
     }
   }
@@ -178,6 +188,7 @@ void loop() {
     powerSet(power);
     Serial.println("Power (Music Mode): " + String(power)); 
   }
+  
   delay(100);
 }
 
@@ -208,4 +219,13 @@ void powerSet(int power) {
     digitalWrite(motorBp, HIGH);
     digitalWrite(motorBm, LOW);
     analogWrite(motorBp, power);
+}
+
+boolean isPlayEnd(uint8_t type) {
+  if(type == DFPlayerPlayFinished) {
+    return true;
+  }
+  else {
+    return false;
+  }
 }
