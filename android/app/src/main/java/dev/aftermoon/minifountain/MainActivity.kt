@@ -146,7 +146,7 @@ class MainActivity : AppCompatActivity() {
                     setBTReceiving()
                     setColorPickerView()
                     setWaterSeek()
-                    val delayHandle: Handler = Handler()
+                    val delayHandle = Handler()
                     delayHandle.postDelayed({}, 1000)
                     window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
                     Toast.makeText(applicationContext, "$name 에 연결되었습니다.", Toast.LENGTH_SHORT).show()
@@ -176,6 +176,9 @@ class MainActivity : AppCompatActivity() {
             if(message == "bluetooth;connect?") {
                 bluetooth.send("bluetooth;connect!", true)
             }
+            else if(message == "playaudio;failedbegin") {
+                Toast.makeText(applicationContext, "MP3 플레이어 모듈과의 통신이 실패하였습니다. 연결을 확인해주세요.", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -184,7 +187,6 @@ class MainActivity : AppCompatActivity() {
         when (requestCode) {
             BluetoothState.REQUEST_ENABLE_BT -> {
                 if(resultCode == Activity.RESULT_OK) {
-                    Toast.makeText(this, "블루투스가 활성화 되었습니다!", Toast.LENGTH_SHORT).show()
                     bluetooth.setupService()
                     bluetooth.startService(BluetoothState.DEVICE_OTHER)
                     connectBluetooth()
