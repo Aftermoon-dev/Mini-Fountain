@@ -65,7 +65,7 @@ boolean isActivedPlayMusic = false;
 
 void setup() {
   // Begin Serial (Debug)
-  Serial.begin(9600);
+  Serial.begin(115200);
   Serial.println("Mini Fountain System Online");
   Serial.println("Made by Team Midnight");
   
@@ -88,14 +88,16 @@ void setup() {
     powerSet(power);
   }
 
+  dfSerial.begin(9600);
   // Begin DFPlayer Mini
   if(!dfPlayer.begin(dfSerial)) {
-    Serial.println("Failed to Load MP3 Module.");
+    Serial.println("Failed to Load MP3 Module");
     isEnabledDFPlayer = false;
   }
   else {
     isEnabledDFPlayer = true;
     dfPlayer.volume(DF_VOLUME);
+    Serial.println("Success to Load MP3 Module"); 
   }
 }
 
@@ -103,7 +105,8 @@ void loop() {
   if(isActivedPlayMusic == true && isPlayEnd(dfPlayer.readType()) == true) {
     isActivedPlayMusic = false;
   }
-  
+
+  BTSerial.listen();
   if(BTSerial.available()) {
     String btData = BTSerial.readString();
     Serial.println("BT : " + btData);
@@ -129,15 +132,20 @@ void loop() {
     else if(btData.indexOf("bluetooth;connected") != -1) {
       isConnected = true;
       powerSet(0);
+      isActivedPlayMusic = false;
+      dfPlayer.pause();
       Serial.println("Bluetooth Connected!");
     }
     else if(btData.indexOf("bluetooth;disconnected") != -1) {
       isConnected = false;
+      isActivedPlayMusic = false;
+      dfPlayer.pause();
       Serial.println("Bluetooth Disconnected");
     }
     else if(btData.indexOf("playaudio;play") != 1) {
-      convtData = btData.substring(13, 15);
+      convtData = btData.substring(14, 15);
       int songNum = convtData.toInt();
+      Serial.println("Song Number : " + convtData);
 
       if(isEnabledDFPlayer == false) {
         BTSerial.write("playaudio;failedbegin\r\n");

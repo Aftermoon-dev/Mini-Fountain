@@ -2,4 +2,7 @@
     <string name="app_name">Mini Fountain</string>
     <string name="control_fountain">분수 강도 설정</string>
     <string name="control_led">LED 색상 설정</string>
+    <string name="control_music">음악 재생</string>
+    <string name="play">재생</string>
+    <string name="stop">정지</string>
 </resources>

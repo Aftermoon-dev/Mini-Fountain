@@ -68,6 +68,46 @@
                 app:palette="@drawable/palette"
                 app:selector="@drawable/wheel"
                 android:layout_gravity="center" />
+
+            <TextView
+                android:id="@+id/playMusicText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="32dp"
+                android:text="@string/control_music"
+                android:textAppearance="@style/TextAppearance.AppCompat.Large"
+                android:layout_gravity="center" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:layout_marginTop="32dp"
+                android:orientation="horizontal">
+
+                <EditText
+                    android:id="@+id/playMusicNum"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:ems="2"
+                    android:inputType="number"
+                    android:layout_marginEnd="15dp" />
+
+                <Button
+                    android:id="@+id/playMusicBtn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:text="@string/play" />
+
+                <Button
+                    android:id="@+id/stopMusicBtn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:text="@string/stop" />
+            </LinearLayout>
         </LinearLayout>
     </ScrollView>
 </androidx.constraintlayout.widget.ConstraintLayout>

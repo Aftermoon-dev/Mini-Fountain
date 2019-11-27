@@ -51,6 +51,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var bluetooth : BluetoothSPP
     private var isConnected: Boolean = false
+    private var isPlaying: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -98,7 +99,11 @@ class MainActivity : AppCompatActivity() {
                     alreadyConnectDialog.setTitle("경고")
                         .setMessage("이미 장치에 연결되어 있습니다.\n연결을 해제하고 다른 기기와 연결하시겠습니까?")
                         .setPositiveButton("확인") { _, _ ->
-                            if(isConnected) bluetooth.disconnect()
+                            if(isConnected) {
+                                isConnected = false
+                                isPlaying = false
+                                bluetooth.disconnect()
+                            }
                             selectBTDevice()
                         }
                         .setNegativeButton("취소") { dialogInterface, _ ->
@@ -142,10 +147,13 @@ class MainActivity : AppCompatActivity() {
             // Bluetooth Connection Listener
             bluetooth.setBluetoothConnectionListener(object : BluetoothConnectionListener {
                 override fun onDeviceConnected(name: String, address: String) {
+                    isPlaying = false
                     isConnected = true
+                    bluetooth.send("playaudio;stop", true)
                     setBTReceiving()
                     setColorPickerView()
                     setWaterSeek()
+                    setPlayMusic()
                     val delayHandle = Handler()
                     delayHandle.postDelayed({}, 1000)
                     window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
@@ -155,12 +163,14 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 override fun onDeviceDisconnected() {
+                    isPlaying = false
                     isConnected = false
                     Toast.makeText(applicationContext, "블루투스 연결이 해제되었습니다.", Toast.LENGTH_SHORT).show()
                     Log.d("Bluetooth", "Device Disconnected.")
                 }
 
                 override fun onDeviceConnectionFailed() {
+                    isPlaying = false
                     isConnected = false
                     window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
                     Toast.makeText(applicationContext, "블루투스 연결에 실패했습니다.", Toast.LENGTH_SHORT).show()
@@ -239,5 +249,18 @@ class MainActivity : AppCompatActivity() {
 
         val alert = btDeviceDialog.create()
         alert.show()
+    }
+
+    private fun setPlayMusic() {
+        if(isConnected) {
+            val musicNum = playMusicNum.text
+            playMusicBtn.setOnClickListener {
+                bluetooth.send("playaudio;play$musicNum", true)
+            }
+
+            stopMusicBtn.setOnClickListener {
+                bluetooth.send("playaudio;stop", true)
+            }
+        }
     }
 }
