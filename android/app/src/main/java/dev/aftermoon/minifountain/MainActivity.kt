@@ -52,11 +52,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var bluetooth : BluetoothSPP
     private var isConnected: Boolean = false
     private var isPlaying: Boolean = false
+    private var lastsendTime: Long = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         bluetooth = BluetoothSPP(applicationContext)
+
+        lastsendTime = System.currentTimeMillis()
 
         if(!bluetooth.isBluetoothAvailable) {
             Toast.makeText(this, "블루투스가 지원되지 않는 기기에서는 사용할 수 없습니다. 앱을 종료합니다.", Toast.LENGTH_LONG).show()
@@ -78,7 +81,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         isConnected = false
-        bluetooth.send("bluetooth;disconnected", true)
+        sendBluetooth("bluetooth;disconnected", true)
         bluetooth.stopService()
         super.onDestroy()
     }
@@ -121,7 +124,7 @@ class MainActivity : AppCompatActivity() {
         colorPickerView.setColorListener(ColorEnvelopeListener { envelope, _ ->
             Log.d("MainActivity", "User Selected Color : " + envelope.hexCode)
             // send Hex Color Code for LED
-            bluetooth.send("color;" + envelope.hexCode, true)
+            sendBluetooth("color;" + envelope.hexCode, true)
         })
     }
 
@@ -132,7 +135,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onStopTrackingTouch(p0: SeekBar?) {
-                bluetooth.send("power;$pw", true)
+                sendBluetooth("pw;$pw", true)
             }
 
             override fun onProgressChanged(p0: SeekBar?, p1: Int, p2: Boolean) {
@@ -149,7 +152,7 @@ class MainActivity : AppCompatActivity() {
                 override fun onDeviceConnected(name: String, address: String) {
                     isPlaying = false
                     isConnected = true
-                    bluetooth.send("playaudio;stop", true)
+                    sendBluetooth("playaudio;stop", true)
                     setBTReceiving()
                     setColorPickerView()
                     setWaterSeek()
@@ -158,7 +161,7 @@ class MainActivity : AppCompatActivity() {
                     delayHandle.postDelayed({}, 1000)
                     window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
                     Toast.makeText(applicationContext, "$name 에 연결되었습니다.", Toast.LENGTH_SHORT).show()
-                    bluetooth.send("bluetooth;connected", true)
+                    sendBluetooth("bluetooth;connected", true)
                     Log.d("Bluetooth", "Device Connected! Device Name : $name")
                 }
 
@@ -184,10 +187,16 @@ class MainActivity : AppCompatActivity() {
         bluetooth.setOnDataReceivedListener { _, message ->
             Log.d("BTReceive", "Message Received : $message")
             if(message == "bluetooth;connect?") {
-                bluetooth.send("bluetooth;connect!", true)
+                sendBluetooth("bluetooth;connect!", true)
             }
             else if(message == "playaudio;failedbegin") {
                 Toast.makeText(applicationContext, "MP3 플레이어 모듈과의 통신이 실패하였습니다. 연결을 확인해주세요.", Toast.LENGTH_SHORT).show()
+            }
+            else if(message == "audio;stop") {
+                Toast.makeText(applicationContext, "노래가 정지되었습니다.", Toast.LENGTH_SHORT).show()
+            }
+            else if(message == "audio;start") {
+                Toast.makeText(applicationContext, "노래가 시작되었습니다.", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -255,12 +264,31 @@ class MainActivity : AppCompatActivity() {
         if(isConnected) {
             val musicNum = playMusicNum.text
             playMusicBtn.setOnClickListener {
-                bluetooth.send("playaudio;play$musicNum", true)
+                sendBluetooth("playaudio;play$musicNum", true)
             }
 
             stopMusicBtn.setOnClickListener {
-                bluetooth.send("playaudio;stop", true)
-            }
+                sendBluetooth("playaudio;stop", true)
         }
+        }
+    }
+
+    private fun sendBluetooth(data: String, crlf: Boolean) {
+        val nowTime = System.currentTimeMillis()
+
+        if((nowTime - lastsendTime) <= 3000 ) {
+            Log.d("send", "Need Delay! - $data")
+            val delayHandle = Handler()
+            delayHandle.postDelayed({
+                bluetooth.send(data, crlf)
+                Log.d("send", "Delay Send : $data")
+            }, 1500)
+        }
+        else {
+            Log.d("send", "Send : $data")
+            bluetooth.send(data, crlf)
+        }
+
+        lastsendTime = nowTime
     }
 }

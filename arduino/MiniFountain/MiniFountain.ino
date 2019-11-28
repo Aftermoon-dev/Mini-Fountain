@@ -45,7 +45,7 @@ boolean isConnected = false;
 
 /** LED (NeoPixel) Setting **/
 #define ledPin 5
-#define ledNum 2
+#define ledNum 4
 Adafruit_NeoPixel leds(ledNum, ledPin, NEO_GRB + NEO_KHZ800);
 
 /** DHT11 Sensor **/
@@ -57,7 +57,7 @@ float humi;
 #define soundPin A0
 #define DF_RX 9
 #define DF_TX 10
-#define DF_VOLUME 20
+#define DF_VOLUME 15
 SoftwareSerial dfSerial(DF_RX, DF_TX);
 DFRobotDFPlayerMini dfPlayer;
 boolean isEnabledDFPlayer = false;
@@ -82,10 +82,10 @@ void setup() {
   humi = dht.readHumidity();
   Serial.println("Humidity : " + String(humi)); 
   delay(100);
-  if(humi < 65) {
+  if(humi < 50) {
     int power = map(humi, 20, 90, 255, 0);
     Serial.println("Power (Humidity Mode): " + String(power)); 
-    powerSet(power);
+    //powerSet(power);
   }
 
   dfSerial.begin(9600);
@@ -102,66 +102,73 @@ void setup() {
 }
 
 void loop() {
-  if(isActivedPlayMusic == true && isPlayEnd(dfPlayer.readType()) == true) {
-    isActivedPlayMusic = false;
-  }
-
   BTSerial.listen();
-  if(BTSerial.available()) {
-    String btData = BTSerial.readString();
-    Serial.println("BT : " + btData);
+  String btData = "";
+  String convtData = "";
+  
+  while(BTSerial.available()) {
+    char getBT = (char) BTSerial.read();
+    btData += getBT;
+    delay(5);
+  }  
+  
+  if(btData.indexOf("color") != -1) {
+    convtData = btData.substring(8, 14);    
+    Serial.println("Color : " + convtData);
+    changeRGB("#" + convtData);
+  }
+  else if(btData.indexOf("pw") != -1) {
+    convtData = btData.substring(3, 6);
+    int power = convtData.toInt();
+    powerSet(power);
+    Serial.println("Power : " + convtData);
+    Serial.println("Power (Map) : " + String(power)); 
+  }
+  else if(btData.indexOf("bluetooth;connect!") != -1) {
+    isCheckSend = false;
+    isConnected = true;
+    Serial.println("Bluetooth Connection Check Complete.");
+  }
+  else if(btData.indexOf("bluetooth;connected") != -1) {
+    isConnected = true;
+    powerSet(0);
+    isActivedPlayMusic = false;
+    dfPlayer.pause();
+    Serial.println("Bluetooth Connected!");
+  }
+  else if(btData.indexOf("bluetooth;disconnected") != -1) {
+    isConnected = false;
+    isActivedPlayMusic = false;
+    leds.clear();
+    leds.show();
+    powerSet(0);
+    dfPlayer.pause();
+    Serial.println("Bluetooth Disconnected");
+  }
+  else if(btData.indexOf("playaudio;play") != -1) {
+    convtData = btData.substring(14, 15);
+    int songNum = convtData.toInt();
+    Serial.println("Song Number : " + convtData);
 
-    String convtData = "";
-    if(btData.indexOf("color") != -1) {
-      convtData = btData.substring(8, 14);
-      Serial.println("Color : " + convtData);
-      changeRGB(convtData);
-    }
-    else if(btData.indexOf("power") != -1) {
-      convtData = btData.substring(6, 9);
-      int power = convtData.toInt();
-      powerSet(power);
-      Serial.println("Power : " + convtData);
-      Serial.println("Power (Map) : " + String(power)); 
-    }
-    else if(btData.indexOf("bluetooth;connect!") != -1) {
-      isCheckSend = false;
-      isConnected =  true;
-      Serial.println("Bluetooth Connection Check Complete.");
-    }
-    else if(btData.indexOf("bluetooth;connected") != -1) {
-      isConnected = true;
-      powerSet(0);
+    if(isEnabledDFPlayer == false) {
+      BTSerial.write("playaudio;failedbegin\r\n");
       isActivedPlayMusic = false;
-      dfPlayer.pause();
-      Serial.println("Bluetooth Connected!");
     }
-    else if(btData.indexOf("bluetooth;disconnected") != -1) {
-      isConnected = false;
-      isActivedPlayMusic = false;
-      dfPlayer.pause();
-      Serial.println("Bluetooth Disconnected");
+    else {
+      isActivedPlayMusic = true;
+      dfPlayer.play(songNum);
+      BTSerial.write("audio;start\r\n");
     }
-    else if(btData.indexOf("playaudio;play") != 1) {
-      convtData = btData.substring(14, 15);
-      int songNum = convtData.toInt();
-      Serial.println("Song Number : " + convtData);
-
-      if(isEnabledDFPlayer == false) {
-        BTSerial.write("playaudio;failedbegin\r\n");
-        isActivedPlayMusic = false;
-      }
-      else {
-        isActivedPlayMusic = true;
-        dfPlayer.play(songNum);
-      }
-    }
-    else if(btData.indexOf("playaudio;stop") != 1) {
-      if(isActivedPlayMusic == true) {
-        isActivedPlayMusic = false;
-        dfPlayer.pause();
-      }
-    }
+  }
+  else if(btData.indexOf("playaudio;stop") != -1) {
+   if(isActivedPlayMusic == true) {
+     isActivedPlayMusic = false;
+     leds.clear();
+     leds.show();
+     powerSet(0);
+     dfPlayer.pause();
+     BTSerial.write("audio;stop\r\n");
+   }
   }
 
   time = millis();
@@ -182,19 +189,20 @@ void loop() {
       else {
         humi = dht.readHumidity();
         if(humi < 50) {
-          int power = map(humi, 20, 90, 255, 0);
+          int power = map(humi, 20, 90, 200, 0);
           Serial.println("Humidity : " + String(humi)); 
           Serial.println("Power (Humidity Mode): " + String(power)); 
-          powerSet(power);
+          //powerSet(power);
         }
       }
     }
   }
 
   if(isActivedPlayMusic == true) {
-    int power = map(analogRead(soundPin), 0, 1023, 0, 255);
+    int power = map(analogRead(soundPin), 0, 1023, 0, 200);
     powerSet(power);
     Serial.println("Power (Music Mode): " + String(power)); 
+    rainbow(1);
   }
   
   delay(100);
@@ -223,17 +231,21 @@ void powerSet(int power) {
     digitalWrite(motorAp, HIGH);
     digitalWrite(motorAm, LOW);
     analogWrite(motorAp, power);
-
+    delay(100);
+    
     digitalWrite(motorBp, HIGH);
     digitalWrite(motorBm, LOW);
     analogWrite(motorBp, power);
+    delay(100);
 }
 
-boolean isPlayEnd(uint8_t type) {
-  if(type == DFPlayerPlayFinished) {
-    return true;
-  }
-  else {
-    return false;
+void rainbow(int wait) {
+  for(long firstPixelHue = 0; firstPixelHue < 5*65536; firstPixelHue += 256) {
+    for(int i=0; i<leds.numPixels(); i++) { // For each pixel in strip...
+      int pixelHue = firstPixelHue + (i * 65536L / leds.numPixels());
+      leds.setPixelColor(i, leds.gamma32(leds.ColorHSV(pixelHue)));
+    }
+    leds.show();
+    delay(wait);
   }
 }
