@@ -28,6 +28,7 @@
 #include <DFRobotDFPlayerMini.h>
 
 /** Motor Setting **/
+#define maxMotorValue 200
 #define motorAp 6
 #define motorAm 7
 #define motorBp 11
@@ -47,16 +48,19 @@ boolean isConnected = false;
 #define ledPin 5
 #define ledNum 4
 Adafruit_NeoPixel leds(ledNum, ledPin, NEO_GRB + NEO_KHZ800);
+boolean isRainbowEnable = false;
 
 /** DHT11 Sensor **/
 #define dhtPin 4
+#define minHumi 40
 DHT dht(dhtPin, DHT11);
 float humi;
 
 /** Sound **/
 #define soundPin A0
-#define DF_RX 9
-#define DF_TX 10
+#define DF_RX 8
+#define DF_TX 9
+#define DF_BUSY 10
 #define DF_VOLUME 15
 SoftwareSerial dfSerial(DF_RX, DF_TX);
 DFRobotDFPlayerMini dfPlayer;
@@ -82,14 +86,16 @@ void setup() {
   humi = dht.readHumidity();
   Serial.println("Humidity : " + String(humi)); 
   delay(100);
-  if(humi < 50) {
-    int power = map(humi, 20, 90, 255, 0);
+  if(humi < minHumi) {
+    int power = map(humi, 20, 90, maxMotorValue, 0);
     Serial.println("Power (Humidity Mode): " + String(power)); 
-    //powerSet(power);
+    powerSet(power);
   }
 
-  dfSerial.begin(9600);
   // Begin DFPlayer Mini
+  pinMode(DF_BUSY, INPUT);
+  dfSerial.begin(9600);
+  
   if(!dfPlayer.begin(dfSerial)) {
     Serial.println("Failed to Load MP3 Module");
     isEnabledDFPlayer = false;
@@ -102,6 +108,11 @@ void setup() {
 }
 
 void loop() {
+  int dfPlayer_State = digitalRead(DF_BUSY);
+  if(dfPlayer_State == HIGH) {
+    isActivedPlayMusic = false;
+  }
+  
   BTSerial.listen();
   String btData = "";
   String convtData = "";
@@ -170,6 +181,16 @@ void loop() {
      BTSerial.write("audio;stop\r\n");
    }
   }
+  else if(btData.indexOf("rainbow;start") != -1) {
+    BTSerial.write("led;rainbow_start\r\n");
+    isRainbowEnable = true;
+  }
+  else if(btData.indexOf("rainbow;stop") != -1) {
+    BTSerial.write("led;rainbow_stop\r\n");
+    isRainbowEnable = false;
+    leds.clear();
+    leds.show();
+  }
 
   time = millis();
   if(connectedCheckTime == time - preTime) {
@@ -188,21 +209,25 @@ void loop() {
       }
       else {
         humi = dht.readHumidity();
-        if(humi < 50) {
-          int power = map(humi, 20, 90, 200, 0);
+        if(humi < minHumi) {
+          int power = map(humi, 20, 90, maxMotorValue, 0);
           Serial.println("Humidity : " + String(humi)); 
           Serial.println("Power (Humidity Mode): " + String(power)); 
-          //powerSet(power);
+          powerSet(power);
         }
       }
     }
   }
 
   if(isActivedPlayMusic == true) {
-    int power = map(analogRead(soundPin), 0, 1023, 0, 200);
+    int power = map(analogRead(soundPin), 0, 1023, 0, maxMotorValue);
     powerSet(power);
     Serial.println("Power (Music Mode): " + String(power)); 
-    rainbow(1);
+    rainbow(2);
+  }
+
+  if(isRainbowEnable == true) {
+    rainbow(3);
   }
   
   delay(100);
@@ -241,7 +266,7 @@ void powerSet(int power) {
 
 void rainbow(int wait) {
   for(long firstPixelHue = 0; firstPixelHue < 5*65536; firstPixelHue += 256) {
-    for(int i=0; i<leds.numPixels(); i++) { // For each pixel in strip...
+    for(int i=0; i<leds.numPixels(); i++) {
       int pixelHue = firstPixelHue + (i * 65536L / leds.numPixels());
       leds.setPixelColor(i, leds.gamma32(leds.ColorHSV(pixelHue)));
     }
