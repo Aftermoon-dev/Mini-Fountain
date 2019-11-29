@@ -28,7 +28,7 @@
 #include <DFRobotDFPlayerMini.h>
 
 /** Motor Setting **/
-#define maxMotorValue 200
+#define maxMotorValue 100
 #define motorAp 6
 #define motorAm 7
 #define motorBp 11
@@ -61,7 +61,7 @@ float humi;
 #define DF_RX 8
 #define DF_TX 9
 #define DF_BUSY 10
-#define DF_VOLUME 15
+#define DF_VOLUME 30
 SoftwareSerial dfSerial(DF_RX, DF_TX);
 DFRobotDFPlayerMini dfPlayer;
 boolean isEnabledDFPlayer = false;
@@ -70,8 +70,6 @@ boolean isActivedPlayMusic = false;
 void setup() {
   // Begin Serial (Debug)
   Serial.begin(115200);
-  Serial.println("Mini Fountain System Online");
-  Serial.println("Made by Team Midnight");
   
   // Begin Bluetooth
   BTSerial.begin(19200);
@@ -87,7 +85,7 @@ void setup() {
   Serial.println("Humidity : " + String(humi)); 
   delay(100);
   if(humi < minHumi) {
-    int power = map(humi, 20, 90, maxMotorValue, 0);
+    int power = map(humi, 20, 90, maxMotorValue, 100);
     Serial.println("Power (Humidity Mode): " + String(power)); 
     powerSet(power);
   }
@@ -101,13 +99,15 @@ void setup() {
     isEnabledDFPlayer = false;
   }
   else {
+    Serial.println("Success to Load MP3 Module"); 
     isEnabledDFPlayer = true;
     dfPlayer.volume(DF_VOLUME);
-    Serial.println("Success to Load MP3 Module"); 
+    delay(5);
+    dfPlayer.playMp3Folder(1);
   }
 }
 
-void loop() {
+void loop() {  
   int dfPlayer_State = digitalRead(DF_BUSY);
   if(dfPlayer_State == HIGH) {
     isActivedPlayMusic = false;
@@ -131,7 +131,7 @@ void loop() {
   else if(btData.indexOf("pw") != -1) {
     convtData = btData.substring(3, 6);
     int power = convtData.toInt();
-    powerSet(power);
+    powerSet(map(power, 0, 255, 0, maxMotorValue));
     Serial.println("Power : " + convtData);
     Serial.println("Power (Map) : " + String(power)); 
   }
@@ -171,22 +171,25 @@ void loop() {
       BTSerial.write("audio;start\r\n");
     }
   }
-  else if(btData.indexOf("playaudio;stop") != -1) {
+  else if(btData.indexOf("audstop") != -1) {
+   Serial.println("Audio Stop");
    if(isActivedPlayMusic == true) {
      isActivedPlayMusic = false;
-     leds.clear();
-     leds.show();
      powerSet(0);
      dfPlayer.pause();
+     leds.clear();
+     leds.show();
      BTSerial.write("audio;stop\r\n");
    }
   }
   else if(btData.indexOf("rainbow;start") != -1) {
+    Serial.println("Rainbow Start");
     BTSerial.write("led;rainbow_start\r\n");
     isRainbowEnable = true;
   }
-  else if(btData.indexOf("rainbow;stop") != -1) {
-    BTSerial.write("led;rainbow_stop\r\n");
+  else if(btData.indexOf("led;stop") != -1) {
+    Serial.println("LED STOP");
+    BTSerial.write("led;stop\r\n");
     isRainbowEnable = false;
     leds.clear();
     leds.show();
@@ -256,12 +259,10 @@ void powerSet(int power) {
     digitalWrite(motorAp, HIGH);
     digitalWrite(motorAm, LOW);
     analogWrite(motorAp, power);
-    delay(100);
-    
+
     digitalWrite(motorBp, HIGH);
     digitalWrite(motorBm, LOW);
     analogWrite(motorBp, power);
-    delay(100);
 }
 
 void rainbow(int wait) {

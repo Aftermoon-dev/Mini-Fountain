@@ -157,8 +157,7 @@ class MainActivity : AppCompatActivity() {
                     setColorPickerView()
                     setWaterSeek()
                     setPlayMusic()
-                    val delayHandle = Handler()
-                    delayHandle.postDelayed({}, 1000)
+                    setLEDBtn()
                     window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
                     Toast.makeText(applicationContext, "$name 에 연결되었습니다.", Toast.LENGTH_SHORT).show()
                     sendBluetooth("bluetooth;connected", true)
@@ -186,17 +185,25 @@ class MainActivity : AppCompatActivity() {
     private fun setBTReceiving() {
         bluetooth.setOnDataReceivedListener { _, message ->
             Log.d("BTReceive", "Message Received : $message")
-            if(message == "bluetooth;connect?") {
-                sendBluetooth("bluetooth;connect!", true)
+            if (message == "bluetooth;connect?") {
+                bluetooth.send("bluetooth;connect!", true)
             }
             else if(message == "playaudio;failedbegin") {
-                Toast.makeText(applicationContext, "MP3 플레이어 모듈과의 통신이 실패하였습니다. 연결을 확인해주세요.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(applicationContext, "MP3 플레이어 모듈과의 통신이 실패하였습니다. 음악 기능을 사용하실 수 없습니다.", Toast.LENGTH_SHORT).show()
             }
             else if(message == "audio;stop") {
                 Toast.makeText(applicationContext, "노래가 정지되었습니다.", Toast.LENGTH_SHORT).show()
             }
             else if(message == "audio;start") {
                 Toast.makeText(applicationContext, "노래가 시작되었습니다.", Toast.LENGTH_SHORT).show()
+            }
+            else if(message == "led;rainbow_start") {
+                Toast.makeText(applicationContext, "무지개색이 적용되었습니다.", Toast.LENGTH_SHORT).show()
+                colorPickerView.selectCenter()
+            }
+            else if(message == "led;stop") {
+                Toast.makeText(applicationContext, "LED가 꺼졌습니다.", Toast.LENGTH_SHORT).show()
+                colorPickerView.selectCenter()
             }
         }
     }
@@ -268,8 +275,20 @@ class MainActivity : AppCompatActivity() {
             }
 
             stopMusicBtn.setOnClickListener {
-                sendBluetooth("playaudio;stop", true)
+                bluetooth.send("audstop", true)
+            }
         }
+    }
+
+    private fun setLEDBtn() {
+        if(isConnected) {
+            ledOffBtn.setOnClickListener {
+                sendBluetooth("led;stop", true)
+            }
+
+            ledRainbowBtn.setOnClickListener {
+                sendBluetooth("rainbow;start", true)
+            }
         }
     }
 
@@ -282,7 +301,7 @@ class MainActivity : AppCompatActivity() {
             delayHandle.postDelayed({
                 bluetooth.send(data, crlf)
                 Log.d("send", "Delay Send : $data")
-            }, 1500)
+            }, 2000)
         }
         else {
             Log.d("send", "Send : $data")
