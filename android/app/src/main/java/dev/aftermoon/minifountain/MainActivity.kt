@@ -199,11 +199,12 @@ class MainActivity : AppCompatActivity() {
             }
             else if(message == "led;rainbow_start") {
                 Toast.makeText(applicationContext, "무지개색이 적용되었습니다.", Toast.LENGTH_SHORT).show()
-                colorPickerView.selectCenter()
             }
             else if(message == "led;stop") {
                 Toast.makeText(applicationContext, "LED가 꺼졌습니다.", Toast.LENGTH_SHORT).show()
-                colorPickerView.selectCenter()
+            }
+            else if(message == "bluetooth;checkc") {
+                bluetooth.send("bt;aconnect", true)
             }
         }
     }

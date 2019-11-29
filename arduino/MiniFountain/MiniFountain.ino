@@ -28,7 +28,7 @@
 #include <DFRobotDFPlayerMini.h>
 
 /** Motor Setting **/
-#define maxMotorValue 100
+#define maxMotorValue 85
 #define motorAp 6
 #define motorAm 7
 #define motorBp 11
@@ -61,7 +61,7 @@ float humi;
 #define DF_RX 8
 #define DF_TX 9
 #define DF_BUSY 10
-#define DF_VOLUME 30
+#define DF_VOLUME 25
 SoftwareSerial dfSerial(DF_RX, DF_TX);
 DFRobotDFPlayerMini dfPlayer;
 boolean isEnabledDFPlayer = false;
@@ -73,6 +73,7 @@ void setup() {
   
   // Begin Bluetooth
   BTSerial.begin(19200);
+  BTSerial.write("bluetooth;checkc");
 
   // Begin LED
   pinMode(ledPin, OUTPUT);
@@ -85,9 +86,10 @@ void setup() {
   Serial.println("Humidity : " + String(humi)); 
   delay(100);
   if(humi < minHumi) {
-    int power = map(humi, 20, 90, maxMotorValue, 100);
+    int power = map(humi, 20, 90, maxMotorValue, 30);
     Serial.println("Power (Humidity Mode): " + String(power)); 
     powerSet(power);
+    isRainbowEnable = false;
   }
 
   // Begin DFPlayer Mini
@@ -109,8 +111,11 @@ void setup() {
 
 void loop() {  
   int dfPlayer_State = digitalRead(DF_BUSY);
-  if(dfPlayer_State == HIGH) {
+  if(dfPlayer_State == HIGH && isActivedPlayMusic == true) {
     isActivedPlayMusic = false;
+    isRainbowEnable = false;
+    leds.clear();
+    leds.show();
   }
   
   BTSerial.listen();
@@ -118,6 +123,7 @@ void loop() {
   String convtData = "";
   
   while(BTSerial.available()) {
+    preTime = millis();
     char getBT = (char) BTSerial.read();
     btData += getBT;
     delay(5);
@@ -146,6 +152,7 @@ void loop() {
     isActivedPlayMusic = false;
     dfPlayer.pause();
     Serial.println("Bluetooth Connected!");
+    isRainbowEnable = false;
   }
   else if(btData.indexOf("bluetooth;disconnected") != -1) {
     isConnected = false;
@@ -194,43 +201,49 @@ void loop() {
     leds.clear();
     leds.show();
   }
+  else if(btData.indexOf("bt;aconnect") != -1) {
+    isConnected = true;
+    powerSet(0);
+    isActivedPlayMusic = false;
+    dfPlayer.pause();
+    Serial.println("Bluetooth Connected!");
+  }
 
   time = millis();
-  if(connectedCheckTime == time - preTime) {
-    if(isActivedPlayMusic == false) {
-      if(isConnected == true) {
-        if(isCheckSend == false) {
-          preTime = time;
-          BTSerial.write("bluetooth;connect?\r\n");
-          isCheckSend = true;
-          Serial.println("Check Bluetooth Connection...");
-        }
-        else {
-          isConnected = false;
-          Serial.println("Failed to Bluetooth Communication.");
-        }
+  if(connectedCheckTime <= time - preTime) {
+    if(isConnected == true) {
+      if(isCheckSend == false) {
+        BTSerial.write("bluetooth;connect?\r\n");
+        isCheckSend = true;
+        Serial.println("Check Bluetooth Connection...");
       }
       else {
-        humi = dht.readHumidity();
-        if(humi < minHumi) {
-          int power = map(humi, 20, 90, maxMotorValue, 0);
-          Serial.println("Humidity : " + String(humi)); 
-          Serial.println("Power (Humidity Mode): " + String(power)); 
-          powerSet(power);
-        }
+        isConnected = false;
+        Serial.println("Failed to Bluetooth Communication.");
+      }
+    } 
+    else {
+      humi = dht.readHumidity();
+      if(humi < minHumi) {
+        int power = map(humi, 20, 90, maxMotorValue, 30);
+        Serial.println("Humidity : " + String(humi)); 
+        Serial.println("Power (Humidity Mode): " + String(power)); 
+        powerSet(power);
+        isRainbowEnable = false;
       }
     }
+    preTime = time;
   }
 
   if(isActivedPlayMusic == true) {
     int power = map(analogRead(soundPin), 0, 1023, 0, maxMotorValue);
     powerSet(power);
     Serial.println("Power (Music Mode): " + String(power)); 
-    rainbow(2);
+    rainbow(1);
   }
 
   if(isRainbowEnable == true) {
-    rainbow(3);
+    rainbow(2);
   }
   
   delay(100);
